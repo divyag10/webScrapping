@@ -1,0 +1,45 @@
+import os
+from flask import Flask,request,redirect,url_for
+from flask import send_file
+from flask import jsonify
+from werkzeug.utils import secure_filename
+
+
+app = Flask(__name__)
+
+
+@app.route('/crop_image/', methods=['POST'])
+def upload_file():
+    # check if the post request has the file part
+    #print(1)
+    if 'file' not in request.files:
+        return 'NO file found'
+    file = request.files['file']
+    #print(2)
+    # if user does not select file, browser also
+    # submit a empty part without filename
+    if file.filename == '':
+        return 'NO file name'
+    #print(3)
+    if file and allowed_file(file.filename):
+        #print(4)
+        filename = secure_filename(file.filename)
+        #print(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        #print(5)
+        enhancement = Enhancement(os.path.join(app.config['UPLOAD_FOLDER'], filename),'CBSE',10)
+        #print(6)
+        #return send_file(enhancement.cropping()[1], mimetype='image/gif')
+        crop_result = enhancement.cropping()
+        if crop_result and crop_result[0]:
+            f= open(crop_result[1],"rb")
+            #print(7)
+            data = f.read()
+            #print(8)
+            return jsonify(result = data.encode("base64"))
+        elif crop_result and not crop_result[0] and crop_result[1]:
+            return jsonify(result = crop_result[1])
+    return jsonify(result = 'Not allowed file')
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0',port=8000)
